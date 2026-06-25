@@ -4,7 +4,7 @@ A resilient REST API that aggregates **USD↔PHP** exchange rates from multiple 
 sources, serves fast cached reads with history, and fires user webhooks when a rate
 crosses a threshold. Built with ASP.NET Core and Entity Framework Core.
 
-> **Live demo:** _set your Render URL here after deploying_ · **Interactive API docs:** `/scalar`
+> **Live demo:** https://fx-rates-api-donr.onrender.com · **Interactive API docs:** [`/scalar`](https://fx-rates-api-donr.onrender.com/scalar)
 >
 > _Hosted on Render's free tier — the first request after ~15 min idle takes ~50s to wake, then it's fast._
 
