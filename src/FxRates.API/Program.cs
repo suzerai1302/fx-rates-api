@@ -66,6 +66,28 @@ app.MapGet("/rates", (ILatestRateCache cache) =>
         : Results.Ok(RatesResponse.From(snapshot));
 });
 
+app.MapGet("/convert", (decimal amount, string direction, ILatestRateCache cache) =>
+{
+    if (amount < 0)
+        return Results.Problem(statusCode: 400, title: "amount must be non-negative.");
+
+    var snapshot = cache.Current;
+    if (snapshot is null)
+        return Results.Problem(statusCode: 503, title: "No rate snapshot available yet.");
+
+    var rate = snapshot.Median; // PHP per 1 USD
+    decimal result;
+    switch (direction)
+    {
+        case "USD_TO_PHP": result = amount * rate; break;
+        case "PHP_TO_USD": result = amount / rate; break;
+        default:
+            return Results.Problem(statusCode: 400, title: "direction must be USD_TO_PHP or PHP_TO_USD.");
+    }
+
+    return Results.Ok(new ConvertResponse(amount, rate, Math.Round(result, 4), snapshot.AsOf));
+});
+
 app.Run();
 
 // Response DTOs for GET /rates.
@@ -79,6 +101,8 @@ public record RatesResponse(
         new AggregateDto(s.Median, s.Mean, s.Min, s.Max),
         s.Sources.Select(sr => new SourceDto(sr.Name, sr.Rate, sr.FetchedAt, sr.Status)).ToList());
 }
+
+public record ConvertResponse(decimal Amount, decimal Rate, decimal Result, DateTimeOffset AsOf);
 
 // Exposed so the test project's WebApplicationFactory<Program> can boot the real app.
 public partial class Program { }
