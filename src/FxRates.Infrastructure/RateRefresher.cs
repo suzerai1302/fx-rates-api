@@ -41,9 +41,15 @@ public class RateRefresher
 
         if (survivors.Count == 0)
         {
-            // Every source failed. Slice #3 turns this into a stale re-serve of the
-            // last good snapshot; for now we keep the existing cache untouched.
-            _logger.LogWarning("All FX sources failed this refresh; keeping previous snapshot.");
+            // Every source failed. Re-serve the last good snapshot marked stale
+            // (AsOf unchanged) so reads never 5xx on an upstream outage. With no
+            // prior snapshot there is simply nothing to serve yet.
+            if (_cache.Current is { } previous)
+            {
+                previous.IsStale = true;
+                _cache.Set(previous);
+            }
+            _logger.LogWarning("All FX sources failed this refresh; serving last good snapshot as stale.");
             return;
         }
 

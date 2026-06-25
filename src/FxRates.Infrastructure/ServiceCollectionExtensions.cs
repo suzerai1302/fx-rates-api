@@ -11,9 +11,14 @@ public static class ServiceCollectionExtensions
     // GetServices<IFxRateSource>(). Not called under tests (a fake is used instead).
     public static IServiceCollection AddFxSources(this IServiceCollection services)
     {
-        services.AddHttpClient<OpenErApiSource>(c => c.BaseAddress = new Uri("https://open.er-api.com/"));
-        services.AddHttpClient<FloatRatesSource>(c => c.BaseAddress = new Uri("https://www.floatrates.com/"));
-        services.AddHttpClient<CurrencyApiSource>(c => c.BaseAddress = new Uri("https://cdn.jsdelivr.net/"));
+        // Each source gets timeout + retry-with-backoff + circuit breaker so a slow or
+        // flaky upstream is bounded; the refresher then drops whatever still failed.
+        services.AddHttpClient<OpenErApiSource>(c => c.BaseAddress = new Uri("https://open.er-api.com/"))
+            .AddStandardResilienceHandler();
+        services.AddHttpClient<FloatRatesSource>(c => c.BaseAddress = new Uri("https://www.floatrates.com/"))
+            .AddStandardResilienceHandler();
+        services.AddHttpClient<CurrencyApiSource>(c => c.BaseAddress = new Uri("https://cdn.jsdelivr.net/"))
+            .AddStandardResilienceHandler();
 
         services.AddTransient<IFxRateSource>(sp => sp.GetRequiredService<OpenErApiSource>());
         services.AddTransient<IFxRateSource>(sp => sp.GetRequiredService<FloatRatesSource>());
