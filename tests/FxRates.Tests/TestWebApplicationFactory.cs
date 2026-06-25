@@ -27,6 +27,8 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 
     public FakeClock Clock { get; } = new();
 
+    public FakeWebhookSender Webhooks { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -36,6 +38,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         {
             services.AddDbContext<FxRatesDbContext>(options => options.UseSqlite(_connection));
             services.AddSingleton<IClock>(Clock);
+            services.AddSingleton<IWebhookSender>(Webhooks);
             foreach (var source in Sources)
                 services.AddSingleton<IFxRateSource>(source);
 

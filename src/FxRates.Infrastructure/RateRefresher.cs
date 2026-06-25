@@ -62,5 +62,50 @@ public class RateRefresher
         _logger.LogInformation(
             "Refreshed FX rates: median {Median} from {Ok}/{Total} sources.",
             aggregate.Median, survivors.Count, sources.Count);
+
+        await ProcessAlertsAsync(scope.ServiceProvider, aggregate.Median, snapshot.AsOf, cancellationToken);
+    }
+
+    // Evaluate every alert against the new median with hysteresis; fire webhooks for
+    // crossings and persist any armed-state change. One alert's failure (or a failing
+    // webhook) never stops the others or the refresh loop.
+    private async Task ProcessAlertsAsync(IServiceProvider scope, decimal median, DateTime asOf, CancellationToken ct)
+    {
+        var alertRepository = scope.GetRequiredService<IAlertRepository>();
+        var webhookSender = scope.GetRequiredService<IWebhookSender>();
+        var deliveryRepository = scope.GetRequiredService<IAlertDeliveryRepository>();
+
+        foreach (var alert in await alertRepository.GetAllAsync(ct))
+        {
+            try
+            {
+                var evaluation = AlertEvaluator.Evaluate(alert.Comparator, alert.Threshold, alert.IsArmed, median);
+
+                if (evaluation.ShouldFire)
+                {
+                    var payload = new WebhookPayload(alert.Id, alert.Comparator, alert.Threshold, median, asOf);
+                    var result = await webhookSender.SendAsync(alert.CallbackUrl, payload, ct);
+                    await deliveryRepository.AddAsync(new AlertDelivery
+                    {
+                        AlertId = alert.Id,
+                        FiredAt = asOf,
+                        Rate = median,
+                        Status = result.Success ? "delivered" : "failed",
+                        Attempts = result.Attempts,
+                        LastError = result.LastError,
+                    }, ct);
+                }
+
+                if (alert.IsArmed != evaluation.IsArmed)
+                {
+                    alert.IsArmed = evaluation.IsArmed;
+                    await alertRepository.UpdateAsync(alert, ct);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "Processing alert {AlertId} failed; continuing.", alert.Id);
+            }
+        }
     }
 }

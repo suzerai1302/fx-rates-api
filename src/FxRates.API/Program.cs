@@ -40,6 +40,7 @@ if (!isTesting)
     builder.Services.AddDbContext<FxRatesDbContext>(options => options.UseNpgsql(pgConn));
 
     builder.Services.AddFxSources();
+    builder.Services.AddHttpClient<IWebhookSender, HttpWebhookSender>(c => c.Timeout = TimeSpan.FromSeconds(10));
 
     var intervalMinutes = builder.Configuration.GetValue("Fx:RefreshIntervalMinutes", 10);
     builder.Services.AddSingleton<IHostedService>(sp => new RateRefreshService(
@@ -55,6 +56,7 @@ builder.Services.AddSingleton<RateRefresher>();
 
 builder.Services.AddScoped<IUserRepository, EfUserRepository>();
 builder.Services.AddScoped<IAlertRepository, EfAlertRepository>();
+builder.Services.AddScoped<IAlertDeliveryRepository, EfAlertDeliveryRepository>();
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddSingleton<ITokenIssuer, JwtTokenIssuer>();
 

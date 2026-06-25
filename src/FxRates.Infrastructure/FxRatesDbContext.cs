@@ -11,6 +11,7 @@ public class FxRatesDbContext : DbContext
     public DbSet<SourceRate> SourceRates => Set<SourceRate>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Alert> Alerts => Set<Alert>();
+    public DbSet<AlertDelivery> AlertDeliveries => Set<AlertDelivery>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -53,6 +54,14 @@ public class FxRatesDbContext : DbContext
             e.Property(a => a.Threshold).HasPrecision(18, 6);
             e.Property(a => a.CallbackUrl).HasMaxLength(2048);
             e.HasIndex(a => a.OwnerUserId);
+        });
+
+        modelBuilder.Entity<AlertDelivery>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.Status).HasMaxLength(16);
+            e.Property(d => d.Rate).HasPrecision(18, 6);
+            e.HasIndex(d => d.AlertId);
         });
     }
 }

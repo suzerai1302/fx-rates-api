@@ -13,6 +13,23 @@ namespace FxRates.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "AlertDeliveries",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    AlertId = table.Column<Guid>(type: "uuid", nullable: false),
+                    FiredAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Rate = table.Column<decimal>(type: "numeric(18,6)", precision: 18, scale: 6, nullable: false),
+                    Status = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
+                    Attempts = table.Column<int>(type: "integer", nullable: false),
+                    LastError = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AlertDeliveries", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Alerts",
                 columns: table => new
                 {
@@ -86,6 +103,11 @@ namespace FxRates.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_AlertDeliveries_AlertId",
+                table: "AlertDeliveries",
+                column: "AlertId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Alerts_OwnerUserId",
                 table: "Alerts",
                 column: "OwnerUserId");
@@ -110,6 +132,9 @@ namespace FxRates.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "AlertDeliveries");
+
             migrationBuilder.DropTable(
                 name: "Alerts");
 

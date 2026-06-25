@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FxRates.Infrastructure.Migrations
 {
     [DbContext(typeof(FxRatesDbContext))]
-    [Migration("20260625041951_InitialCreate")]
+    [Migration("20260625042431_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -59,6 +59,40 @@ namespace FxRates.Infrastructure.Migrations
                     b.HasIndex("OwnerUserId");
 
                     b.ToTable("Alerts");
+                });
+
+            modelBuilder.Entity("FxRates.Core.AlertDelivery", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AlertId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FiredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlertId");
+
+                    b.ToTable("AlertDeliveries");
                 });
 
             modelBuilder.Entity("FxRates.Core.RateSnapshot", b =>
