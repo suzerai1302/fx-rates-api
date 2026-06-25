@@ -1,0 +1,17 @@
+# Render Blueprint — deploys the API as a free Docker web service.
+# Database is an external Neon Postgres (persistent free tier); paste its
+# connection string into DATABASE_URL when prompted at deploy time.
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: fx-rates-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: Jwt__Key
+        generateValue: true          # Render generates a strong secret
+      - key: DATABASE_URL
+        sync: false                  # paste your Neon connection string at deploy time
+      - key: Fx__RefreshIntervalMinutes
+        value: "10"

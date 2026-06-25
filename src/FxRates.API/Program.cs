@@ -6,8 +6,10 @@ using FxRates.Core;
 using FxRates.Infrastructure;
 using FxRates.Infrastructure.Sources;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +19,13 @@ if (!string.IsNullOrEmpty(port))
     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 var isTesting = builder.Environment.IsEnvironment("Testing");
+
+builder.Services.AddOpenApi(options =>
+{
+    // Document the JWT scheme + mark authed endpoints so Scalar shows an Authorize box.
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+    options.AddOperationTransformer<AuthorizationOperationTransformer>();
+});
 
 // In the Testing environment the test host supplies the DbContext (SQLite) and a
 // fake FX source, and drives refreshes manually — so we skip Postgres, the real
@@ -79,12 +88,28 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Render terminates TLS at a proxy and forwards plain HTTP with X-Forwarded-Proto.
+// Honor it so Request.Scheme is "https" — otherwise the OpenAPI server URL is http://
+// and Scalar's browser calls get blocked as mixed content. KnownProxies/Networks are
+// cleared because the proxy isn't loopback.
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+};
+forwardedOptions.KnownIPNetworks.Clear();
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
+
 // Apply pending migrations on startup (skipped under tests, which use SQLite).
 if (!isTesting)
 {
     using var scope = app.Services.CreateScope();
     scope.ServiceProvider.GetRequiredService<FxRatesDbContext>().Database.Migrate();
 }
+
+// OpenAPI spec + Scalar interactive docs, live in all environments for the demo.
+app.MapOpenApi();
+app.MapScalarApiReference();
 
 app.UseAuthentication();
 app.UseAuthorization();
