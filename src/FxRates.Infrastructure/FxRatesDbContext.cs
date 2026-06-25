@@ -9,6 +9,7 @@ public class FxRatesDbContext : DbContext
 
     public DbSet<RateSnapshot> Snapshots => Set<RateSnapshot>();
     public DbSet<SourceRate> SourceRates => Set<SourceRate>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +35,14 @@ public class FxRatesDbContext : DbContext
             e.Property(sr => sr.Name).HasMaxLength(64);
             e.Property(sr => sr.Status).HasMaxLength(16);
             e.Property(sr => sr.Rate).HasPrecision(18, 6);
+        });
+
+        modelBuilder.Entity<User>(e =>
+        {
+            e.HasKey(u => u.Id);
+            e.Property(u => u.Email).HasMaxLength(256);
+            e.HasIndex(u => u.Email).IsUnique();
+            e.Property(u => u.PasswordHash).HasMaxLength(256);
         });
     }
 }

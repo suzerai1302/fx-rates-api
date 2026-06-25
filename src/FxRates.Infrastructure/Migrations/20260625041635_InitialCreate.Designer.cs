@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FxRates.Infrastructure.Migrations
 {
     [DbContext(typeof(FxRatesDbContext))]
-    [Migration("20260625041318_InitialCreate")]
+    [Migration("20260625041635_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -105,6 +105,30 @@ namespace FxRates.Infrastructure.Migrations
                     b.HasIndex("RateSnapshotId");
 
                     b.ToTable("SourceRates");
+                });
+
+            modelBuilder.Entity("FxRates.Core.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("FxRates.Core.SourceRate", b =>

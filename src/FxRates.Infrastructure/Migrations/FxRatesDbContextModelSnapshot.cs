@@ -104,6 +104,30 @@ namespace FxRates.Infrastructure.Migrations
                     b.ToTable("SourceRates");
                 });
 
+            modelBuilder.Entity("FxRates.Core.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("Users");
+                });
+
             modelBuilder.Entity("FxRates.Core.SourceRate", b =>
                 {
                     b.HasOne("FxRates.Core.RateSnapshot", null)

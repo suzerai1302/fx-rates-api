@@ -33,6 +33,19 @@ namespace FxRates.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Users",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    PasswordHash = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Users", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "SourceRates",
                 columns: table => new
                 {
@@ -64,6 +77,12 @@ namespace FxRates.Infrastructure.Migrations
                 name: "IX_SourceRates_RateSnapshotId",
                 table: "SourceRates",
                 column: "RateSnapshotId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Email",
+                table: "Users",
+                column: "Email",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -71,6 +90,9 @@ namespace FxRates.Infrastructure.Migrations
         {
             migrationBuilder.DropTable(
                 name: "SourceRates");
+
+            migrationBuilder.DropTable(
+                name: "Users");
 
             migrationBuilder.DropTable(
                 name: "Snapshots");

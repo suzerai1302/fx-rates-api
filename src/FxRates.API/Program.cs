@@ -1,7 +1,11 @@
+using System.Text;
+using FxRates.API;
 using FxRates.Core;
 using FxRates.Infrastructure;
 using FxRates.Infrastructure.Sources;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +51,27 @@ builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<ILatestRateCache, InMemoryLatestRateCache>();
 builder.Services.AddSingleton<RateRefresher>();
 
+builder.Services.AddScoped<IUserRepository, EfUserRepository>();
+builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
+builder.Services.AddSingleton<ITokenIssuer, JwtTokenIssuer>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+        };
+    });
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 // Apply pending migrations on startup (skipped under tests, which use SQLite).
@@ -56,7 +81,28 @@ if (!isTesting)
     scope.ServiceProvider.GetRequiredService<FxRatesDbContext>().Database.Migrate();
 }
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+app.MapPost("/auth/register", async (RegisterRequest request, IUserRepository users, IPasswordHasher hasher, CancellationToken ct) =>
+{
+    if (await users.GetByEmailAsync(request.Email, ct) is not null)
+        return Results.Conflict(new { error = "Email already registered." });
+
+    await users.AddAsync(new User { Email = request.Email, PasswordHash = hasher.Hash(request.Password) }, ct);
+    return Results.Created($"/users/{request.Email}", null);
+});
+
+app.MapPost("/auth/login", async (LoginRequest request, IUserRepository users, IPasswordHasher hasher, ITokenIssuer tokens, CancellationToken ct) =>
+{
+    var user = await users.GetByEmailAsync(request.Email, ct);
+    if (user is null || !hasher.Verify(request.Password, user.PasswordHash))
+        return Results.Unauthorized();
+
+    return Results.Ok(new { token = tokens.CreateToken(user) });
+});
 
 app.MapGet("/rates", (ILatestRateCache cache) =>
 {
@@ -118,6 +164,8 @@ public record RatesResponse(
         s.Sources.Select(sr => new SourceDto(sr.Name, sr.Rate, sr.FetchedAt, sr.Status)).ToList());
 }
 
+public record RegisterRequest(string Email, string Password);
+public record LoginRequest(string Email, string Password);
 public record ConvertResponse(decimal Amount, decimal Rate, decimal Result, DateTime AsOf);
 public record HistoryPoint(DateTime AsOf, decimal Median, decimal Mean, decimal Min, decimal Max);
 
