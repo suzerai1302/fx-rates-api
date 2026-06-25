@@ -9,7 +9,7 @@ public class SourceRate
 
     public string Name { get; set; } = string.Empty;
     public decimal? Rate { get; set; }
-    public DateTimeOffset FetchedAt { get; set; }
+    public DateTime FetchedAt { get; set; } // UTC instant
     public string Status { get; set; } = "ok"; // "ok" | "failed"
 
     public static SourceRate From(FxFetchResult result) =>
@@ -17,7 +17,7 @@ public class SourceRate
         {
             Name = result.SourceName,
             Rate = result.Rate,
-            FetchedAt = result.FetchedAt,
+            FetchedAt = result.FetchedAt.UtcDateTime,
             Status = result.Success ? "ok" : "failed",
         };
 }

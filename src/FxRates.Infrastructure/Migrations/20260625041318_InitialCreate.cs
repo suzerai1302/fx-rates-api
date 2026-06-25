@@ -18,7 +18,7 @@ namespace FxRates.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    AsOf = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    AsOf = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Base = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false),
                     Quote = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false),
                     Median = table.Column<decimal>(type: "numeric(18,6)", precision: 18, scale: 6, nullable: false),
@@ -41,7 +41,7 @@ namespace FxRates.Infrastructure.Migrations
                     RateSnapshotId = table.Column<int>(type: "integer", nullable: false),
                     Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Rate = table.Column<decimal>(type: "numeric(18,6)", precision: 18, scale: 6, nullable: true),
-                    FetchedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    FetchedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Status = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false)
                 },
                 constraints: table =>

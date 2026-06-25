@@ -8,5 +8,5 @@ public interface IRateSnapshotRepository
 
     // Slice #5 (history). from/to are inclusive bounds; limit caps the result count.
     Task<IReadOnlyList<RateSnapshot>> GetHistoryAsync(
-        DateTimeOffset? from, DateTimeOffset? to, int limit, CancellationToken cancellationToken);
+        DateTime? from, DateTime? to, int limit, CancellationToken cancellationToken);
 }

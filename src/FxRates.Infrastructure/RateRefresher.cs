@@ -54,7 +54,7 @@ public class RateRefresher
         }
 
         var aggregate = RateAggregator.Aggregate(survivors);
-        var snapshot = RateSnapshot.FromAggregate(aggregate, _clock.UtcNow, sourceRates);
+        var snapshot = RateSnapshot.FromAggregate(aggregate, _clock.UtcNow.UtcDateTime, sourceRates);
 
         await repository.AddAsync(snapshot, cancellationToken);
         _cache.Set(snapshot);

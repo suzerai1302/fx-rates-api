@@ -30,7 +30,7 @@ namespace FxRates.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTimeOffset>("AsOf")
+                    b.Property<DateTime>("AsOf")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Base")
@@ -77,7 +77,7 @@ namespace FxRates.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTimeOffset>("FetchedAt")
+                    b.Property<DateTime>("FetchedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")

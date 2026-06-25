@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FxRates.Infrastructure.Migrations
 {
     [DbContext(typeof(FxRatesDbContext))]
-    [Migration("20260625040046_InitialCreate")]
+    [Migration("20260625041318_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -33,7 +33,7 @@ namespace FxRates.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTimeOffset>("AsOf")
+                    b.Property<DateTime>("AsOf")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Base")
@@ -80,7 +80,7 @@ namespace FxRates.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTimeOffset>("FetchedAt")
+                    b.Property<DateTime>("FetchedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")

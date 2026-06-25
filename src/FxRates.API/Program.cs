@@ -88,13 +88,29 @@ app.MapGet("/convert", (decimal amount, string direction, ILatestRateCache cache
     return Results.Ok(new ConvertResponse(amount, rate, Math.Round(result, 4), snapshot.AsOf));
 });
 
+app.MapGet("/rates/history", async (
+    DateTime? from, DateTime? to, int? limit, IRateSnapshotRepository repository, CancellationToken ct) =>
+{
+    var take = limit ?? 100;
+    if (take is <= 0 or > 1000)
+        return Results.Problem(statusCode: 400, title: "limit must be between 1 and 1000.");
+    if (from is not null && to is not null && from > to)
+        return Results.Problem(statusCode: 400, title: "from must be on or before to.");
+
+    var snapshots = await repository.GetHistoryAsync(from, to, take, ct);
+    var points = snapshots
+        .Select(s => new HistoryPoint(s.AsOf, s.Median, s.Mean, s.Min, s.Max))
+        .ToList();
+    return Results.Ok(points);
+});
+
 app.Run();
 
 // Response DTOs for GET /rates.
 public record AggregateDto(decimal Median, decimal Mean, decimal Min, decimal Max);
-public record SourceDto(string Name, decimal? Rate, DateTimeOffset FetchedAt, string Status);
+public record SourceDto(string Name, decimal? Rate, DateTime FetchedAt, string Status);
 public record RatesResponse(
-    DateTimeOffset AsOf, string Base, string Quote, bool Stale, AggregateDto Aggregate, IReadOnlyList<SourceDto> Sources)
+    DateTime AsOf, string Base, string Quote, bool Stale, AggregateDto Aggregate, IReadOnlyList<SourceDto> Sources)
 {
     public static RatesResponse From(RateSnapshot s) => new(
         s.AsOf, s.Base, s.Quote, s.IsStale,
@@ -102,7 +118,8 @@ public record RatesResponse(
         s.Sources.Select(sr => new SourceDto(sr.Name, sr.Rate, sr.FetchedAt, sr.Status)).ToList());
 }
 
-public record ConvertResponse(decimal Amount, decimal Rate, decimal Result, DateTimeOffset AsOf);
+public record ConvertResponse(decimal Amount, decimal Rate, decimal Result, DateTime AsOf);
+public record HistoryPoint(DateTime AsOf, decimal Median, decimal Mean, decimal Min, decimal Max);
 
 // Exposed so the test project's WebApplicationFactory<Program> can boot the real app.
 public partial class Program { }

@@ -5,7 +5,7 @@ namespace FxRates.Core;
 public class RateSnapshot
 {
     public int Id { get; set; }
-    public DateTimeOffset AsOf { get; set; }
+    public DateTime AsOf { get; set; } // UTC instant; DateTime (not DateTimeOffset) so SQLite can sort/filter it
     public string Base { get; set; } = "USD";
     public string Quote { get; set; } = "PHP";
 
@@ -21,7 +21,7 @@ public class RateSnapshot
 
     public List<SourceRate> Sources { get; set; } = new();
 
-    public static RateSnapshot FromAggregate(RateAggregate aggregate, DateTimeOffset asOf, IEnumerable<SourceRate> sources) =>
+    public static RateSnapshot FromAggregate(RateAggregate aggregate, DateTime asOf, IEnumerable<SourceRate> sources) =>
         new()
         {
             AsOf = asOf,
