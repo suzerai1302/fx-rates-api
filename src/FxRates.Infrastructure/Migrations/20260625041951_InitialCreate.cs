@@ -13,6 +13,23 @@ namespace FxRates.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "Alerts",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    OwnerUserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Comparator = table.Column<string>(type: "character varying(2)", maxLength: 2, nullable: false),
+                    Threshold = table.Column<decimal>(type: "numeric(18,6)", precision: 18, scale: 6, nullable: false),
+                    CallbackUrl = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsArmed = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Alerts", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Snapshots",
                 columns: table => new
                 {
@@ -69,6 +86,11 @@ namespace FxRates.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Alerts_OwnerUserId",
+                table: "Alerts",
+                column: "OwnerUserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Snapshots_AsOf",
                 table: "Snapshots",
                 column: "AsOf");
@@ -88,6 +110,9 @@ namespace FxRates.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Alerts");
+
             migrationBuilder.DropTable(
                 name: "SourceRates");
 

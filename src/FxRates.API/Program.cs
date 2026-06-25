@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using FxRates.API;
 using FxRates.Core;
@@ -52,6 +54,7 @@ builder.Services.AddSingleton<ILatestRateCache, InMemoryLatestRateCache>();
 builder.Services.AddSingleton<RateRefresher>();
 
 builder.Services.AddScoped<IUserRepository, EfUserRepository>();
+builder.Services.AddScoped<IAlertRepository, EfAlertRepository>();
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddSingleton<ITokenIssuer, JwtTokenIssuer>();
 
@@ -103,6 +106,46 @@ app.MapPost("/auth/login", async (LoginRequest request, IUserRepository users, I
 
     return Results.Ok(new { token = tokens.CreateToken(user) });
 });
+
+app.MapPost("/alerts", async (CreateAlertRequest request, IAlertRepository alerts, ClaimsPrincipal principal, IClock clock, CancellationToken ct) =>
+{
+    if (request.Comparator is not (">=" or "<="))
+        return Results.Problem(statusCode: 400, title: "comparator must be \">=\" or \"<=\".");
+    if (!Uri.TryCreate(request.CallbackUrl, UriKind.Absolute, out var uri) ||
+        (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        return Results.Problem(statusCode: 400, title: "callbackUrl must be an absolute http(s) URL.");
+
+    var alert = new Alert
+    {
+        OwnerUserId = GetUserId(principal),
+        Comparator = request.Comparator,
+        Threshold = request.Threshold,
+        CallbackUrl = request.CallbackUrl,
+        CreatedAt = clock.UtcNow.UtcDateTime,
+    };
+    await alerts.AddAsync(alert, ct);
+    return Results.Created($"/alerts/{alert.Id}",
+        new AlertResponse(alert.Id, alert.Comparator, alert.Threshold, alert.CallbackUrl));
+}).RequireAuthorization();
+
+app.MapGet("/alerts", async (IAlertRepository alerts, ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var mine = await alerts.GetByOwnerAsync(GetUserId(principal), ct);
+    return Results.Ok(mine.Select(a => new AlertResponse(a.Id, a.Comparator, a.Threshold, a.CallbackUrl)));
+}).RequireAuthorization();
+
+app.MapDelete("/alerts/{id:guid}", async (Guid id, IAlertRepository alerts, ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var deleted = await alerts.DeleteAsync(id, GetUserId(principal), ct);
+    return deleted ? Results.NoContent() : Results.NotFound();
+}).RequireAuthorization();
+
+static Guid GetUserId(ClaimsPrincipal principal)
+{
+    var sub = principal.FindFirstValue(ClaimTypes.NameIdentifier)
+              ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+    return Guid.Parse(sub!);
+}
 
 app.MapGet("/rates", (ILatestRateCache cache) =>
 {
@@ -166,6 +209,8 @@ public record RatesResponse(
 
 public record RegisterRequest(string Email, string Password);
 public record LoginRequest(string Email, string Password);
+public record CreateAlertRequest(string Comparator, decimal Threshold, string CallbackUrl);
+public record AlertResponse(Guid Id, string Comparator, decimal Threshold, string CallbackUrl);
 public record ConvertResponse(decimal Amount, decimal Rate, decimal Result, DateTime AsOf);
 public record HistoryPoint(DateTime AsOf, decimal Median, decimal Mean, decimal Min, decimal Max);
 
